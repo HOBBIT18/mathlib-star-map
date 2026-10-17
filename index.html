@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Mathlib 依赖星图 · 8,631 个文件 / 259,059 条声明</title>
+<style>
+  :root{
+    --bg:#05060a; --ink:#e9e6df; --dim:#8a8f9c; --faint:#5a6070;
+    --line:rgba(255,255,255,.085); --gold:#d9b26a; --gold-dim:#8a7442;
+    --panel:rgba(10,12,18,.72);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg)}
+  body{
+    font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    color:var(--ink); -webkit-font-smoothing:antialiased;
+  }
+  #stage{position:fixed;inset:0;display:block}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 42%, rgba(20,26,42,.55) 0%, rgba(5,6,10,0) 58%),
+               radial-gradient(140% 120% at 50% 120%, rgba(0,0,0,.75) 0%, rgba(0,0,0,0) 55%);
+    mix-blend-mode:normal}
+
+  /* ---------- 通用面板 ---------- */
+  .panel{
+    background:var(--panel); border:1px solid var(--line);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-radius:3px;
+  }
+  .lbl{font-size:10px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
+  #ctl .hintline{margin-top:8px;font-size:10.5px;line-height:1.7;color:#6f7688;letter-spacing:.03em}
+
+  /* ---------- 标题 ---------- */
+  #head{position:fixed;left:34px;top:28px;pointer-events:none;z-index:6}
+  #head h1{font-size:23px;font-weight:300;letter-spacing:.13em;color:var(--ink)}
+  #head h1 em{font-style:normal;color:var(--gold)}
+  #head .sub{margin-top:9px;font-size:11.5px;letter-spacing:.16em;color:var(--dim)}
+  #head .rule{width:52px;height:1px;background:var(--gold-dim);margin:14px 0 0}
+
+  /* ---------- 控制台 ---------- */
+  #ctl{position:fixed;right:26px;top:26px;width:268px;padding:16px 17px 15px;z-index:7}
+  #ctl .grp{margin-bottom:15px}
+  #ctl .grp:last-child{margin-bottom:0}
+  #ctl .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+  .btn{
+    font:inherit;font-size:11.5px;letter-spacing:.06em;color:var(--dim);
+    background:rgba(255,255,255,.035);border:1px solid var(--line);
+    border-radius:2px;padding:5px 10px;cursor:pointer;transition:.16s;
+  }
+  .btn:hover{color:var(--ink);border-color:rgba(217,178,106,.5);background:rgba(217,178,106,.08)}
+  .btn.on{color:#0a0b0f;background:var(--gold);border-color:var(--gold);font-weight:600}
+  .chk{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--dim);
+       margin-top:8px;cursor:pointer;user-select:none}
+  .chk i{width:12px;height:12px;border:1px solid var(--line);border-radius:2px;
+         display:inline-block;flex:none;position:relative;transition:.16s}
+  .chk.on{color:var(--ink)}
+  .chk.on i{background:var(--gold);border-color:var(--gold)}
+  .chk.on i::after{content:"";position:absolute;left:3px;top:0px;width:4px;height:7px;
+    border-right:2px solid #0a0b0f;border-bottom:2px solid #0a0b0f;transform:rotate(42deg)}
+  #q{
+    width:100%;margin-top:7px;font:inherit;font-size:12px;color:var(--ink);
+    background:rgba(0,0,0,.42);border:1px solid var(--line);border-radius:2px;
+    padding:7px 9px;letter-spacing:.04em;
+  }
+  #q:focus{outline:none;border-color:rgba(217,178,106,.55)}
+  #q::placeholder{color:#4d5361}
+  #hits{margin-top:6px;max-height:150px;overflow:auto}
+  .hit{font-size:11.5px;color:var(--dim);padding:4px 6px;cursor:pointer;
+       border-left:1px solid transparent;white-space:nowrap;overflow:hidden;
+       text-overflow:ellipsis}
+  .hit:hover{color:var(--ink);background:rgba(217,178,106,.09);border-left-color:var(--gold)}
+
+  input[type=range]{width:100%;margin-top:9px;-webkit-appearance:none;height:2px;
+    background:var(--line);border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;
+    border-radius:50%;background:var(--gold);cursor:pointer}
+
+  /* ---------- 图例 ---------- */
+  #legend{position:fixed;left:34px;bottom:28px;width:330px;padding:15px 17px;z-index:6}
+  #ramp{height:7px;margin:9px 0 6px;border-radius:1px}
+  #legend .ex{font-size:11px;line-height:1.75;color:var(--dim);letter-spacing:.02em}
+  #legend .ex b{color:var(--ink);font-weight:500}
+  #legend .sep{height:1px;background:var(--line);margin:12px 0}
+
+  /* ---------- 详情 ---------- */
+  #info{position:fixed;right:26px;bottom:26px;width:330px;padding:16px 17px;z-index:7;
+        opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none}
+  #info.show{opacity:1;transform:none;pointer-events:auto}
+  #info .name{font-size:13px;color:var(--ink);line-height:1.5;word-break:break-all;
+              letter-spacing:.01em}
+  #info .tag{display:inline-block;font-size:10.5px;letter-spacing:.1em;color:var(--gold);
+             border:1px solid var(--gold-dim);border-radius:2px;padding:1px 7px;margin-top:9px}
+  #info table{width:100%;margin-top:13px;border-collapse:collapse}
+  #info td{font-size:11.5px;padding:4px 0;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.045)}
+  #info td:last-child{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+  #info .sect{margin-top:14px}
+  #info .barrow{display:flex;height:5px;margin-top:8px;border-radius:1px;overflow:hidden}
+  #info .barrow span{display:block;height:100%}
+  #flyRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:13px}
+  #flyRow:empty{display:none}
+
+  /* ---------- 悬停提示 ---------- */
+  #tip{position:fixed;pointer-events:none;z-index:9;padding:7px 10px;font-size:11.5px;
+       letter-spacing:.02em;opacity:0;transition:opacity .12s;max-width:340px}
+  #tip .t{color:var(--ink)} #tip .a{color:var(--dim);font-size:10.5px;margin-top:3px}
+
+  /* ---------- 开场 ---------- */
+  #intro{position:fixed;inset:0;z-index:20;display:flex;align-items:center;
+    justify-content:center;background:rgba(4,5,9,.94);transition:opacity .5s}
+  #intro .box{width:600px;padding:44px 46px;border:1px solid var(--line);
+    background:rgba(9,11,16,.9)}
+  #intro h2{font-size:22px;font-weight:300;letter-spacing:.14em}
+  #intro p{font-size:12.5px;line-height:2.0;color:var(--dim);margin-top:16px;letter-spacing:.02em}
+  #intro p b{color:var(--ink);font-weight:500}
+  #intro .go{margin-top:26px;display:inline-block;padding:9px 26px;font-size:12px;
+    letter-spacing:.2em;color:#0a0b0f;background:var(--gold);cursor:pointer;
+    border:none;font-family:inherit;font-weight:600}
+  #intro .fine{margin-top:22px;font-size:10.5px;color:var(--faint);letter-spacing:.05em}
+
+  #load{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
+        font-size:11.5px;letter-spacing:.24em;color:var(--dim)}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div class="vignette"></div>
+
+<div id="head">
+  <h1>Mathlib <em>依赖星图</em></h1>
+  <div class="sub" id="headsub"></div>
+  <div class="rule"></div>
+</div>
+
+<div id="ctl" class="panel">
+  <div class="grp">
+    <div class="lbl">空间</div>
+    <div class="row" id="spaceRow"></div>
+  </div>
+  <div class="grp">
+    <div class="lbl">上色</div>
+    <div class="row" id="colorRow"></div>
+  </div>
+  <div class="grp">
+    <div class="lbl">相机</div>
+    <div class="row" id="camRow"></div>
+    <div class="hintline" id="camHint" style="display:none">
+      W A S D 前后左右 · E / Q 升降 · 按住 Shift 加速<br>拖鼠标转视角 · 滚轮远近 · 走多远都不受选中点约束
+    </div>
+  </div>
+  <div class="grp">
+    <div class="lbl">图层</div>
+    <label class="chk on" data-k="cloud"><i></i>声明点云（259,059 条）</label>
+    <label class="chk on" data-k="edges"><i></i>import 连线（<span id="edgeN">23,010</span> 条）</label>
+    <label class="chk" data-k="labels"><i></i>骨干的名字</label>
+  </div>
+  <div class="grp">
+    <div class="lbl">导览</div>
+    <div class="row" id="tourRow"></div>
+    <div class="row" id="homeRow"></div>
+  </div>
+  <div class="grp">
+    <div class="lbl">只留头顶压着 ≥ <span id="thrN">0</span> 个文件的</div>
+    <input type="range" id="thr" min="0" max="9000" step="50" value="0">
+  </div>
+  <div class="grp">
+    <div class="lbl">找文件</div>
+    <input id="q" placeholder="输入 Mathlib.NumberTheory…">
+    <div id="hits"></div>
+  </div>
+</div>
+
+<div id="legend" class="panel">
+  <div class="lbl">怎么读</div>
+  <div id="ramp"></div>
+  <div class="ex" id="rampTxt"></div>
+  <div class="sep"></div>
+  <div class="ex" style="display:flex;gap:11px;align-items:stretch">
+    <div style="width:3px;border-radius:2px;flex:none;
+      background:linear-gradient(180deg,#e6c88c,#22b8cf)"></div>
+    <div style="flex:1">
+      <div>↑&nbsp; <b>塔尖</b> · 最依赖别人的文件（最深 175 层，模形式）</div>
+      <div style="margin-top:6px">↓&nbsp; <b>地面</b> · 不依赖任何 Mathlib 文件</div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="ex">
+    <b>点</b>＝一个文件；<b>云</b>＝文件里的声明（一条定理／定义就是一个点）<br>
+    <b>线</b>＝import：A 的线连到 B，表示 A 要用 B<br>
+    <b>点一下</b>任意点 → 把它<b>地下</b>（它依赖的）和<b>天上</b>（依赖它的）分开点亮<br>
+    <b>点两下</b>任意点 → 相机飞过去；再按 <b>Z</b> 进微距，<b>R</b> 回到全景
+  </div>
+</div>
+
+<div id="info" class="panel">
+  <div class="name" id="iName">—</div>
+  <div class="tag" id="iArea">—</div>
+  <table id="iTab"></table>
+  <div class="sect">
+    <div class="lbl">它脚下 / 头顶</div>
+    <div class="barrow" id="iBar"></div>
+    <div class="ex" id="iBarTxt" style="font-size:11px;color:var(--dim);margin-top:7px"></div>
+  </div>
+  <div id="flyRow"></div>
+</div>
+
+<div id="tip" class="panel"><div class="t"></div><div class="a"></div></div>
+<div id="dbg" style="display:none"></div>
+
+<div id="intro">
+  <div class="box">
+    <h2>这东西是什么</h2>
+    <p>
+      Mathlib 是数学家写给机器看的数学库：<b>8,631 个文件、259,059 条定义与定理</b>，全部能被计算机逐步验真。
+      文件之间用 <b>import</b> 互相引用——A 要用 B，就得把 B 拉进来。
+      <span id="edgeN2">23,010</span> 条这样的箭头，构成了一张有严格方向的网。
+    </p>
+    <p>
+      这张图问一个问题：<b>数学被机器读进去之后，长成了什么形状？</b><br>
+      转一转它。点一个亮的地方，看它脚下踩着多少东西、头顶又压着多少东西。
+    </p>
+    <button class="go" id="go">进 入</button>
+    <div class="fine">左键旋转 · 滚轮缩放 · 右键平移 · <b>双击任意一个点 = 飞过去</b><br>
+      选中之后：<b>F</b> 飞近 · <b>Z</b> 微距（看清那团声明点）· <b>R</b> 回到全景 · <b>Esc</b> 取消</div>
+  </div>
+</div>
+
+<div id="load">正在展开 259,059 个点…</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+"use strict";
+var D = window.MLDATA;
+var N = D.n, M = D.edges.length/2;
+document.getElementById('load').style.display='none';
+document.getElementById('headsub').textContent =
+  N.toLocaleString()+' 个文件 · '+D.stats.decls_total.toLocaleString()+' 条声明 · '+
+  M.toLocaleString()+' 条 import · '+D.areas.length+' 个领域';
+document.getElementById('edgeN').textContent=M.toLocaleString();
+document.getElementById('edgeN2').textContent=M.toLocaleString();
+
+/* ============ 颜色 ============ */
+// 每个领域一个色相：黄金角 137.508° 铺开（34 个 ≥ 领域数 33），相邻领域永远拉开
+var AREA_HUES=[212,350,127,265,42,180,317,95,232,10,147,285,62,200,337,
+               115,252,30,167,305,82,220,357,135,272,50,187,325,102,240,
+               17,155,292,70];
+function areaColor(i){
+  var h=AREA_HUES[i%AREA_HUES.length], s=0.34+0.1*((i*7)%3), l=0.56+0.05*((i*5)%3);
+  return new THREE.Color().setHSL(h/360,s,l);
+}
+var SEL_COL=new THREE.Color();
+function hex(c){return '#'+c.getHexString();}
+
+// 被依赖数：深蓝 → 青 → 金（地基发金光）
+var RAMP=[[0.00,[0.09,0.14,0.31]],[0.20,[0.14,0.33,0.60]],
+          [0.42,[0.20,0.57,0.72]],[0.62,[0.42,0.70,0.68]],
+          [0.80,[0.78,0.72,0.46]],[1.00,[1.00,0.90,0.58]]];
+function rampColor(t){
+  t=Math.max(0,Math.min(1,t));
+  for(var i=1;i<RAMP.length;i++){
+    if(t<=RAMP[i][0]){
+      var a=RAMP[i-1],b=RAMP[i],f=(t-a[0])/(b[0]-a[0]);
+      return new THREE.Color(a[1][0]+(b[1][0]-a[1][0])*f,
+                             a[1][1]+(b[1][1]-a[1][1])*f,
+                             a[1][2]+(b[1][2]-a[1][2])*f);
+    }
+  }
+  return new THREE.Color(1,.86,.52);
+}
+var COLD=new THREE.Color(0.14,0.17,0.26), DIMMED=new THREE.Color(0.10,0.115,0.155);
+var BLACK=new THREE.Color(0,0,0);   // 加法混合下即「不画」
+
+/* ============ 场景 ============ */
+var canvas=document.getElementById('stage');
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.setClearColor(0x05060a,1);
+
+var scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x05060a,0.0032);
+var camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.5,4000);
+camera.position.set(174,95,216);
+var controls=new THREE.OrbitControls(camera,canvas);
+controls.enableDamping=true; controls.dampingFactor=0.06;
+controls.rotateSpeed=0.62; controls.zoomSpeed=0.9; controls.panSpeed=0.7;
+controls.minDistance=6; controls.maxDistance=900;
+
+/* ============ 索引 ============ */
+var i, j;
+var byName={};
+for(i=0;i<N;i++) byName[D.modules[i]]=i;
+var fwd=[], rev=[];
+for(i=0;i<N;i++){fwd.push([]); rev.push([]);}
+for(i=0;i<M;i++){
+  var a=D.edges[i*2], b=D.edges[i*2+1];
+  fwd[a].push(b); rev[b].push(a);
+}
+
+/* ============ 坐标 ============ */
+var POS={};   // 每种空间一套 Float32Array(n*3)
+function buildPos(src){
+  var arr=new Float32Array(N*3);
+  for(var k=0;k<N*3;k++) arr[k]=src[k];
+  return arr;
+}
+POS.cone=buildPos(D.cone);
+if(D.ball) POS.ball=buildPos(D.ball);
+else POS.ball=POS.cone;
+var space='cone';
+
+/* ============ 文件点（可拾取） ============ */
+var fpos=new Float32Array(N*3), fcol=new Float32Array(N*3), fsize=new Float32Array(N);
+var geF=new THREE.BufferGeometry();
+geF.setAttribute('position',new THREE.BufferAttribute(fpos,3));
+geF.setAttribute('color',new THREE.BufferAttribute(fcol,3));
+geF.setAttribute('size',new THREE.BufferAttribute(fsize,1));
+
+var FOG_COL=new THREE.Vector3(0.0196,0.0235,0.0392), FOG_DEN=0.0034;
+var matF=new THREE.ShaderMaterial({
+  uniforms:{uPix:{value:renderer.getPixelRatio()},
+            uFogC:{value:FOG_COL}, uFogD:{value:FOG_DEN}},
+  vertexShader:[
+    'attribute float size;','varying vec3 vC;','varying float vD;',
+    'uniform float uPix;',
+    'void main(){','vC=color;',
+    'vec4 mv=modelViewMatrix*vec4(position,1.0);',
+    'vD=-mv.z;',
+    'gl_PointSize=clamp(size*uPix*(300.0/-mv.z),1.0,15.0);',
+    'gl_Position=projectionMatrix*mv;}'
+  ].join('\n'),
+  fragmentShader:[
+    'varying vec3 vC;','varying float vD;',
+    'uniform vec3 uFogC;','uniform float uFogD;',
+    'void main(){',
+    'vec2 d=gl_PointCoord-vec2(0.5);',
+    'float r=dot(d,d);',
+    'if(r>0.25) discard;',
+    'float a=pow(1.0-r*4.0,0.8)*0.85;',
+    'float f=1.0-exp(-uFogD*uFogD*vD*vD);',
+    'gl_FragColor=vec4(mix(vC*0.9,uFogC,f),a);',
+    // 与内建材质（点云/连线）走同一套输出编码，否则同色在两处看起来不一样
+    '#include <encodings_fragment>',
+    '}'
+  ].join('\n'),
+  vertexColors:true, transparent:true, depthWrite:false,
+  blending:THREE.AdditiveBlending
+});
+var ptsFile=new THREE.Points(geF,matF);
+scene.add(ptsFile);
+
+/* ============ 声明点云 ============ */
+var TOTAL=D.stats.decls_total;
+var dpos=new Float32Array(TOTAL*3), dcol=new Float32Array(TOTAL*3);
+function rnd(seed){ // mulberry32
+  return function(){seed|=0;seed=seed+0x6D2B79F5|0;
+    var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;};
+}
+var R=rnd(20261017);
+var ptr=0;
+// 每颗声明点相对「自己那个文件」的抖动偏移（与坐标空间无关，切换空间时直接加上去）
+var doff=new Float32Array(TOTAL*3);
+for(i=0;i<N;i++){
+  var d=D.decls[i];
+  if(d<=0) continue;
+  var rad=1.15+1.05*Math.pow(d,0.42);
+  for(j=0;j<d;j++){
+    var u=R()*2-1, th=R()*6.283185307, rr=Math.cbrt(R())*rad;
+    var s=Math.sqrt(1-u*u);
+    doff[ptr*3]  =rr*s*Math.cos(th);
+    doff[ptr*3+1]=rr*u*0.7;
+    doff[ptr*3+2]=rr*s*Math.sin(th);
+    dpos[ptr*3]  =D.cone[i*3]  +doff[ptr*3];
+    dpos[ptr*3+1]=D.cone[i*3+1]+doff[ptr*3+1];
+    dpos[ptr*3+2]=D.cone[i*3+2]+doff[ptr*3+2];
+    ptr++;
+  }
+}
+var geD=new THREE.BufferGeometry();
+geD.setAttribute('position',new THREE.BufferAttribute(dpos,3));
+geD.setAttribute('color',new THREE.BufferAttribute(dcol,3));
+// 声明点云的圆形软贴图：不这么做，拉近之后每个点都是一个方块
+var dotTex=(function(){
+  var s=64, c=document.createElement('canvas'); c.width=c.height=s;
+  var g=c.getContext('2d');
+  var grd=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  grd.addColorStop(0.0,'rgba(255,255,255,1)');
+  grd.addColorStop(0.35,'rgba(255,255,255,0.62)');
+  grd.addColorStop(1.0,'rgba(255,255,255,0)');
+  g.fillStyle=grd; g.fillRect(0,0,s,s);
+  var t=new THREE.CanvasTexture(c);
+  t.minFilter=THREE.LinearFilter; t.generateMipmaps=false;
+  return t;
+})();
+var matD=new THREE.PointsMaterial({size:0.78,map:dotTex,vertexColors:true,transparent:true,
+  opacity:0.055,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+var ptsDecl=new THREE.Points(geD,matD);
+scene.add(ptsDecl);
+
+/* ============ 地面参考 ============ */
+var grid=new THREE.GridHelper(320,16,0x24304a,0x141b29);
+grid.material.transparent=true; grid.material.opacity=0.55;
+grid.material.depthWrite=false;
+scene.add(grid);
+
+/* ============ 连线 ============ */
+var epos=new Float32Array(M*6), ecol=new Float32Array(M*6), emid=new Float32Array(M*6);
+var geE=new THREE.BufferGeometry();
+geE.setAttribute('position',new THREE.BufferAttribute(epos,3));
+geE.setAttribute('color',new THREE.BufferAttribute(ecol,3));
+geE.setAttribute('aMid',new THREE.BufferAttribute(emid,3));
+var matE=new THREE.LineBasicMaterial({vertexColors:true,transparent:true,
+  opacity:0.17,depthWrite:false,blending:THREE.AdditiveBlending});
+/* 走到近处看的时候，从场景另一头横穿画面的长连线会糊成一片白雾。
+   给每条线段存一个中点，整条离相机太远就一起淡出 —— 眼前只剩局部结构。 */
+var matESh=null;
+matE.onBeforeCompile=function(sh){
+  sh.uniforms.uCam={value:new THREE.Vector3()};
+  sh.uniforms.uCut={value:1e6};
+  sh.vertexShader='uniform vec3 uCam;\nuniform float uCut;\nattribute vec3 aMid;\n'+sh.vertexShader;
+  sh.vertexShader=sh.vertexShader.replace('#include <color_vertex>',
+    '#include <color_vertex>\n  vColor *= 1.0 - smoothstep(uCut*0.55, uCut, distance(aMid, uCam));\n');
+  matESh=sh;
+};
+var lines=new THREE.LineSegments(geE,matE);
+scene.add(lines);
+
+/* ============ 上色 / 位置 更新 ============ */
+var colorMode='sky';
+var maxSky=1; for(i=0;i<N;i++) maxSky=Math.max(maxSky,D.sky[i]);
+var maxDecl=1; for(i=0;i<N;i++) maxDecl=Math.max(maxDecl,D.decls[i]);
+var maxBirth=D.births.length-1;
+
+var sel=-1, anc=null, desc=null;
+// 点的大小：文件自己的分量（声明数）+ 它支撑的分量（sky）
+var sizeBase=new Float32Array(N);
+for(i=0;i<N;i++){
+  var _ds=Math.sqrt(D.decls[i]/maxDecl);
+  var _ss=Math.log(1+D.sky[i])/Math.log(1+maxSky);
+  sizeBase[i]=0.9+2.2*_ds+4.6*_ss*_ss;
+}
+
+function baseColorOf(i){
+  if(colorMode==='area') return areaColor(D.area[i]);
+  if(colorMode==='sky'){
+    var t=Math.log(1+D.sky[i])/Math.log(1+maxSky);
+    return rampColor(t);
+  }
+  if(colorMode==='depth') return rampColor(1-D.depth[i]/D.maxDepth);
+  if(colorMode==='decls') return rampColor(Math.sqrt(D.decls[i]/maxDecl));
+  if(colorMode==='birth'){
+    var b=D.birth[i]; if(b<0) return COLD.clone();
+    return rampColor(b/maxBirth);
+  }
+  return COLD.clone();
+}
+
+var ANCC=new THREE.Color(0.30,0.92,0.72);   // 脚下：青绿
+var DESCC=new THREE.Color(1.0,0.58,0.26);   // 头顶：橙
+var SELC=new THREE.Color(1,0.95,0.80);
+
+function refresh(){
+  var P=POS[space];
+  var thr=+document.getElementById('thr').value;
+  var showCloud=chkState.cloud, showEdges=chkState.edges;
+
+  for(i=0;i<N;i++){
+    var c;
+    if(sel>=0){
+      if(i===sel) c=SELC.clone();
+      else if(anc.has(i)) c=ANCC.clone();
+      else if(desc.has(i)) c=DESCC.clone();
+      else c=DIMMED.clone();
+    }else{
+      c=baseColorOf(i);
+      // 阈值：低于阈值的点隐去（加法混合下纯黑=不可见），不是压暗
+      if(D.sky[i]<thr) c=new THREE.Color(0,0,0);
+    }
+    fcol[i*3]=c.r; fcol[i*3+1]=c.g; fcol[i*3+2]=c.b;
+    fsize[i]=sel>=0&&(i===sel||anc.has(i)||desc.has(i))
+      ? sizeBase[i]*1.55+0.9
+      : (D.sky[i]<thr ? 0 : sizeBase[i]);
+    fpos[i*3]=P[i*3]; fpos[i*3+1]=P[i*3+1]; fpos[i*3+2]=P[i*3+2];
+  }
+  geF.attributes.position.needsUpdate=true;
+  geF.attributes.color.needsUpdate=true;
+  geF.attributes.size.needsUpdate=true;
+
+  // 声明云
+  ptr=0;
+  for(i=0;i<N;i++){
+    var d=D.decls[i];
+    if(d<=0) continue;
+    var c2;
+    if(sel>=0){
+      if(i===sel) c2=SELC; else if(anc.has(i)) c2=ANCC;
+      else if(desc.has(i)) c2=DESCC; else c2=DIMMED;
+    }else{
+      var b=baseColorOf(i);
+      var mul=(D.sky[i]<thr)?0.0:1.0;
+      c2=new THREE.Color(b.r*mul,b.g*mul,b.b*mul);
+    }
+    for(j=0;j<d;j++){
+      dcol[ptr*3]=c2.r; dcol[ptr*3+1]=c2.g; dcol[ptr*3+2]=c2.b;
+      dpos[ptr*3]  =P[i*3]  +doff[ptr*3];
+      dpos[ptr*3+1]=P[i*3+1]+doff[ptr*3+1];
+      dpos[ptr*3+2]=P[i*3+2]+doff[ptr*3+2];
+      ptr++;
+    }
+  }
+  geD.attributes.color.needsUpdate=true;
+  geD.attributes.position.needsUpdate=true;
+  ptsDecl.visible=showCloud;
+
+  // 连线
+  var k=0;
+  for(i=0;i<M;i++){
+    var aa=D.edges[i*2];
+    var bb=D.edges[i*2+1];
+    epos[k*6]=P[aa*3];   epos[k*6+1]=P[aa*3+1]; epos[k*6+2]=P[aa*3+2];
+    epos[k*6+3]=P[bb*3]; epos[k*6+4]=P[bb*3+1]; epos[k*6+5]=P[bb*3+2];
+    emid[k*6]  =(P[aa*3]  +P[bb*3])  *0.5;
+    emid[k*6+1]=(P[aa*3+1]+P[bb*3+1])*0.5;
+    emid[k*6+2]=(P[aa*3+2]+P[bb*3+2])*0.5;
+    emid[k*6+3]=emid[k*6]; emid[k*6+4]=emid[k*6+1]; emid[k*6+5]=emid[k*6+2];
+    var ca,cb;
+    if(sel>=0){
+      var hot=(aa===sel||anc.has(aa)||desc.has(aa))&&(bb===sel||anc.has(bb)||desc.has(bb));
+      if(hot){
+        // 边 a→b 表示 a 要用 b：a 在上、b 在下
+        ca=(aa===sel)?SELC:(anc.has(aa)?ANCC:DESCC);
+        cb=(bb===sel)?SELC:(anc.has(bb)?ANCC:DESCC);
+      }else{ ca=BLACK; cb=BLACK; }
+    }else{
+      // 阈值生效时只留两端都在阈值之上的连线
+      if(D.sky[aa]<thr||D.sky[bb]<thr){ ca=BLACK; cb=BLACK; }
+      else { ca=baseColorOf(aa); cb=baseColorOf(bb); }
+    }
+    ecol[k*6]=ca.r;  ecol[k*6+1]=ca.g;  ecol[k*6+2]=ca.b;
+    ecol[k*6+3]=cb.r; ecol[k*6+4]=cb.g; ecol[k*6+5]=cb.b;
+    k++;
+  }
+  geE.attributes.position.needsUpdate=true;
+  geE.attributes.color.needsUpdate=true;
+  geE.attributes.aMid.needsUpdate=true;
+  lines.visible=showEdges;
+  grid.visible=(space==='cone');
+  placeLabels();
+
+  matF.uniforms.uPix.value=renderer.getPixelRatio();
+  document.getElementById('thrN').textContent=thr;
+}
+
+/* ============ 选择：脚下 / 头顶 ============ */
+function closure(start,adj){
+  var seen=new Set([start]), st=[start];
+  while(st.length){
+    var cur=st.pop(), nb=adj[cur];
+    for(var t=0;t<nb.length;t++){
+      if(!seen.has(nb[t])){seen.add(nb[t]);st.push(nb[t]);}
+    }
+  }
+  seen.delete(start);
+  return seen;
+}
+function select(idx){
+  sel=idx;
+  if(idx<0){ anc=new Set(); desc=new Set();
+    document.getElementById('info').classList.remove('show'); refresh(); return; }
+  anc=closure(idx,fwd);   // 它 import 的 → 它脚下（地基）
+  desc=closure(idx,rev);  // import 它的 → 它头顶（建在它上面的）
+  var name=D.modules[idx];
+  document.getElementById('iName').textContent=name;
+  document.getElementById('iArea').textContent=D.areas[D.area[idx]];
+  var rows=[['声明数',D.decls[idx]],['行数',D.lines[idx].toLocaleString()],
+            ['依赖层（离地面多远）',D.depth[idx]],
+            ['脚下：直接/间依赖',D.ground[idx].toLocaleString()],
+            ['头顶：直接依赖它的文件',D.indeg[idx]],
+            ['头顶：间依赖它的文件',D.sky[idx].toLocaleString()],
+            ['出生季度',D.birth[idx]<0?'—'
+              :(D.births[D.birth[idx]]==='之后'?'之后（比最后一个快照还新）':D.births[D.birth[idx]])]];
+  document.getElementById('iTab').innerHTML=rows.map(function(r){
+    return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  var d=desc.size, tot=Math.max(1,anc.size+1+desc.size);
+  document.getElementById('iBar').innerHTML=
+    '<span style="width:'+(100*anc.size/tot)+'%;background:#4de8b8"></span>'+
+    '<span style="width:'+(100*1/tot)+'%;background:#fff"></span>'+
+    '<span style="width:'+(100*desc.size/tot)+'%;background:#ff9540"></span>';
+  document.getElementById('iBarTxt').innerHTML=
+    '脚下 <b style="color:#4de8b8">'+anc.size.toLocaleString()+'</b> 个文件是它的地基；'+
+    '头顶 <b style="color:#ff9540">'+desc.size.toLocaleString()+'</b> 个文件建在它上面。';
+  document.getElementById('info').classList.add('show');
+  refresh();
+}
+
+/* ============ 拾取 ============ */
+var ray=new THREE.Raycaster();
+ray.params.Points.threshold=1.6;
+var mouse=new THREE.Vector2(-9,-9), hoverIdx=-1;
+var tip=document.getElementById('tip');
+
+function pickAt(ev){
+  mouse.x=(ev.clientX/innerWidth)*2-1;
+  mouse.y=-(ev.clientY/innerHeight)*2+1;
+  ray.setFromCamera(mouse,camera);
+  var hit=ray.intersectObject(ptsFile,false);
+  if(!hit.length) return -1;
+  return hit[0].index;
+}
+canvas.addEventListener('pointermove',function(ev){
+  var id=pickAt(ev);
+  if(id!==hoverIdx){
+    hoverIdx=id;
+    if(id>=0){
+      tip.querySelector('.t').textContent=D.modules[id];
+      tip.querySelector('.a').textContent=
+        D.areas[D.area[id]]+' · '+D.decls[id]+' 条声明 · 头顶 '+D.sky[id]+' 个文件';
+      tip.style.opacity=1;
+      canvas.style.cursor='pointer';
+    }else{ tip.style.opacity=0; canvas.style.cursor='grab'; }
+  }
+  if(id>=0){ tip.style.left=Math.min(ev.clientX+16,innerWidth-360)+'px';
+             tip.style.top=(ev.clientY+14)+'px'; }
+});
+canvas.addEventListener('pointerleave',function(){
+  hoverIdx=-1; tip.style.opacity=0; canvas.style.cursor='grab'; });
+var down=null;
+canvas.addEventListener('pointerdown',function(ev){
+  if(ev.button===0) down=[ev.clientX,ev.clientY];
+});
+canvas.addEventListener('pointerup',function(ev){
+  if(ev.button!==0||!down) return;
+  var moved=Math.hypot(ev.clientX-down[0],ev.clientY-down[1]);
+  down=null;
+  if(moved>5) return;
+  var id=pickAt(ev);
+  select(id>=0?id:-1);
+});
+addEventListener('keydown',function(e){
+  if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)) return;   // 搜索框里打字不触发
+  var k=e.key;
+  if(k==='Escape') select(-1);
+  else if(k==='f'||k==='F'){ if(sel>=0) flyTo(sel,false); }
+  else if(k==='z'||k==='Z'){ if(sel>=0) flyTo(sel,true); }
+  else if(k==='r'||k==='R'){ homeView(); }
+});
+
+/* ============ 骨干名字（Sprite 标签） ============ */
+function shortName(m){
+  var p=m.split('.');
+  if(p.length>=3){
+    var two=p.slice(-2).join('.');
+    return two.length<=22?two:p[p.length-1];
+  }
+  return m;
+}
+function makeLabel(text){
+  var c=document.createElement('canvas'), ctx=c.getContext('2d');
+  var F=28, font='500 '+F+'px "Microsoft YaHei UI","Segoe UI",sans-serif';
+  ctx.font=font;
+  var w=Math.ceil(ctx.measureText(text).width)+22;
+  c.width=w; c.height=F+16;
+  ctx=c.getContext('2d');
+  ctx.font=font; ctx.textBaseline='middle';
+  ctx.lineWidth=5; ctx.strokeStyle='rgba(4,5,9,0.92)'; ctx.lineJoin='round';
+  ctx.strokeText(text,11,c.height/2);
+  ctx.fillStyle='rgba(242,240,234,0.98)';
+  ctx.fillText(text,11,c.height/2);
+  var tex=new THREE.CanvasTexture(c);
+  tex.minFilter=THREE.LinearFilter; tex.generateMipmaps=false;
+  var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,
+    depthWrite:false,depthTest:false,opacity:0.9}));
+  sp.scale.set(c.width*0.055,c.height*0.055,1);
+  sp.userData.w=c.width; sp.userData.h=c.height;
+  return sp;
+}
+// 标签在屏幕上保持恒定大小（否则一拉远就糊成一团）
+function updateLabelScale(){
+  for(var t=0;t<labels.length;t++){
+    var sp=labels[t];
+    if(!chkState.labels){ sp.visible=false; continue; }
+    var d=camera.position.distanceTo(sp.position);
+    // 太远的标签在微距视角下会变成糊在屏幕上的大灰块，直接不画
+    if(d>280){ sp.visible=false; continue; }
+    sp.visible=true;
+    var k=d*0.00037;
+    sp.scale.set(sp.userData.w*k,sp.userData.h*k,1);
+    sp.material.opacity=0.9*Math.min(1,(280-d)/80);
+  }
+}
+var hubIdx=[];
+(function(){
+  var want={};
+  // ① 被依赖最多的 20 个
+  var order=[]; for(i=0;i<N;i++) order.push(i);
+  order.sort(function(a,b){return D.indeg[b]-D.indeg[a];});
+  order.slice(0,20).forEach(function(id){want[id]=1;});
+  // ② 每个领域里声明最多的那个（给竖柱子起名）
+  var best={};
+  for(i=0;i<N;i++){
+    var a=D.area[i];
+    if(best[a]===undefined||D.decls[i]>D.decls[best[a]]) best[a]=i;
+  }
+  for(var key in best) want[best[key]]=1;
+  for(var mk in want) hubIdx.push(+mk);
+})();
+var labels=(function(){
+  var names=hubIdx.map(function(id){return shortName(D.modules[id]);});
+  // 短名撞车（如两个 "Basic"）：撞车的统统退回三级名字
+  var cnt={}; names.forEach(function(n){cnt[n]=(cnt[n]||0)+1;});
+  names=names.map(function(n,t){
+    if(cnt[n]===1) return n;
+    return D.modules[hubIdx[t]].split('.').slice(-3).join('.');
+  });
+  var seen={}, out=[];
+  for(var t=0;t<hubIdx.length;t++){
+    var nm=names[t];
+    seen[nm]=(seen[nm]||0)+1;
+    if(seen[nm]>1) nm=nm+' ·'+seen[nm];
+    var sp=makeLabel(nm);
+    sp.visible=false; sp.userData.id=hubIdx[t];
+    scene.add(sp); out.push(sp);
+  }
+  return out;
+})();
+function placeLabels(){
+  var P=POS[space];
+  labels.forEach(function(sp){
+    var id=sp.userData.id;
+    sp.position.set(P[id*3],P[id*3+1]+3.2,P[id*3+2]);
+  });
+}
+
+/* ============ 相机飞行 ============ */
+var fly=null;
+var HOME_POS=new THREE.Vector3(174,95,216);
+function flyTo(idx,closeIn){
+  var P=POS[space];
+  var tx=P[idx*3], ty=P[idx*3+1], tz=P[idx*3+2];
+  var dirv=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();
+  if(!isFinite(dirv.x)||dirv.length()<0.001) dirv.set(0.5,0.4,0.7).normalize();
+  var dist;
+  if(closeIn){
+    // 微距：拉到能看清这个文件自己的那团声明点
+    var rad=1.15+1.05*Math.pow(Math.max(D.decls[idx],1),0.42);
+    dist=Math.max(12,Math.min(70,rad*3.2));
+  }else{
+    dist=45+55*(Math.log(1+D.sky[idx])/Math.log(1+maxSky));
+  }
+  fly={t:0,fromT:controls.target.clone(),toT:new THREE.Vector3(tx,ty,tz),
+       fromP:camera.position.clone(),
+       toP:new THREE.Vector3(tx,ty,tz).add(dirv.multiplyScalar(dist))};
+}
+function homeView(){
+  fly={t:0,fromT:controls.target.clone(),toT:new THREE.Vector3(0,0,0),
+       fromP:camera.position.clone(),toP:HOME_POS.clone()};
+}
+function stepFly(){
+  if(!fly) return;
+  fly.t=Math.min(1,fly.t+0.045);
+  var e=fly.t<0.5?2*fly.t*fly.t:-1+(4-2*fly.t)*fly.t;
+  controls.target.lerpVectors(fly.fromT,fly.toT,e);
+  camera.position.lerpVectors(fly.fromP,fly.toP,e);
+  if(fly.t>=1) fly=null;
+}
+
+/* ============ 自由漫游 ============
+   轨道模式下相机被拴在「选中点」上，只能绕着它转；
+   自由模式把相机和视点当成一个整体平移，想去哪去哪，朝向靠拖鼠标。
+   速度随当前远近自适应：在微距里挪得细，在全景里飞得快。 */
+var freeMode=false, keys={}, noFade=false;
+var _fw=new THREE.Vector3(), _rt=new THREE.Vector3(), _mv=new THREE.Vector3();
+function stepFree(){
+  if(!freeMode||fly) return;
+  _mv.set(0,0,0);
+  camera.getWorldDirection(_fw);
+  _rt.crossVectors(_fw,camera.up).normalize();
+  if(keys['KeyW']) _mv.add(_fw);
+  if(keys['KeyS']) _mv.sub(_fw);
+  if(keys['KeyD']) _mv.add(_rt);
+  if(keys['KeyA']) _mv.sub(_rt);
+  if(keys['KeyE']||keys['Space']) _mv.y+=1;
+  if(keys['KeyQ']) _mv.y-=1;
+  if(_mv.lengthSq()<1e-6) return;
+  var camD=camera.position.distanceTo(controls.target);
+  var sp=(0.32+0.0042*camD)*(keys['ShiftLeft']||keys['ShiftRight']?4:1);
+  _mv.normalize().multiplyScalar(sp);
+  camera.position.add(_mv); controls.target.add(_mv);
+}
+function setFree(on){
+  freeMode=on; keys={};
+  document.getElementById('camHint').style.display=on?'block':'none';
+}
+addEventListener('keydown',function(e){
+  if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)) return;
+  keys[e.code]=true;
+  if(freeMode&&/^(Space|KeyW|KeyA|KeyS|KeyD|KeyQ|KeyE)$/.test(e.code)) e.preventDefault();
+});
+addEventListener('keyup',function(e){ keys[e.code]=false; });
+addEventListener('blur',function(){ keys={}; });
+// 点两下任意一个点 = 飞过去（这是「自由视角」的入口）
+canvas.addEventListener('dblclick',function(ev){
+  var id=pickAt(ev);
+  if(id>=0){ select(id); flyTo(id,false); }
+});
+
+/* ============ UI ============ */
+var chkState={cloud:true,edges:true,labels:false};
+Array.prototype.forEach.call(document.querySelectorAll('.chk'),function(el){
+  el.addEventListener('click',function(){
+    var k=el.dataset.k; chkState[k]=!chkState[k];
+    el.classList.toggle('on',chkState[k]);
+    if(k==='cloud'){ptsDecl.visible=chkState[k];}
+    if(k==='edges'){lines.visible=chkState[k];}
+    if(k==='labels'){labels.forEach(function(s){s.visible=chkState[k];});}
+    refresh();
+  });
+});
+function mkBtns(host,defs,cur,cb){
+  var h=document.getElementById(host);
+  defs.forEach(function(d){
+    var b=document.createElement('button');
+    b.className='btn'+(d[0]===cur?' on':''); b.textContent=d[1]; b.dataset.v=d[0];
+    b.onclick=function(){
+      Array.prototype.forEach.call(h.children,function(x){x.classList.remove('on');});
+      b.classList.add('on'); cb(d[0]);
+    };
+    h.appendChild(b);
+  });
+}
+var SPACES=[['cone','地层（竖=依赖层数）']];
+if(D.ball&&D.ball!==D.cone) SPACES.push(['ball','球状（力导向）']);
+mkBtns('spaceRow',SPACES,space,function(v){
+  space=v; refresh();
+  camera.position.set(174,95,216); controls.target.set(0,0,0);
+});
+mkBtns('colorRow',[['sky','被依赖数'],['area','领域'],['depth','依赖层'],['birth','出生年份'],['decls','声明量']],
+  colorMode,function(v){colorMode=v; refresh(); drawRamp();});
+mkBtns('camRow',[['orbit','轨道（绕选中点）'],['free','自由漫游']],'orbit',function(v){setFree(v==='free');});
+
+var thrEl=document.getElementById('thr');
+thrEl.addEventListener('input',refresh);
+// ?thr=N 预设阈值（截图/联调用，反射到滑块与数字）
+(function(){
+  var t=/[?&]thr=(\d+)/.exec(location.search);
+  if(t){ thrEl.value=t[1]; }
+})();
+
+function gotoExtreme(key){
+  var best=0;
+  for(var t=1;t<N;t++){
+    if(key==='base' && D.sky[t]>D.sky[best]) best=t;
+    else if(key==='top' && D.depth[t]>D.depth[best]) best=t;
+    else if(key==='big' && D.decls[t]>D.decls[best]) best=t;
+  }
+  select(best); flyTo(best);
+}
+mkBtns('tourRow',[['base','地基之王'],['top','最高的塔尖'],['big','最大的文件']],'',
+  function(v){gotoExtreme(v);});
+
+// 瞬时按钮（不是模式选择，点了不留在 on 状态）
+function momentary(host,defs,cb){
+  var h=document.getElementById(host);
+  defs.forEach(function(d){
+    var b=document.createElement('button');
+    b.className='btn'; b.textContent=d[1]; b.dataset.v=d[0];
+    b.onclick=function(){ cb(d[0]); };
+    h.appendChild(b);
+  });
+}
+momentary('homeRow',[['home','回到全景']],function(){ homeView(); });
+momentary('flyRow',[['fly','飞到这里'],['micro','微距'],['home','回到全景']],function(v){
+  if(v==='home') homeView();
+  else if(sel>=0) flyTo(sel,v==='micro');
+});
+
+function drawRamp(){
+  var g=document.getElementById('ramp'), txt=document.getElementById('rampTxt');
+  if(colorMode==='sky'){
+    var st=[];for(var t=0;t<=20;t++){var c=rampColor(t/20);
+      st.push('rgb('+(c.r*255|0)+','+(c.g*255|0)+','+(c.b*255|0)+')');}
+    g.style.background='linear-gradient(90deg,'+st.join(',')+')';
+    txt.innerHTML='越亮＝<b>头顶压着越多文件</b>（地基）。8629 个文件站在 '+
+      '<span style="font-family:ui-monospace,Consolas,monospace">Mathlib.Tactic.Linter.DirectoryDependency</span> 上（99.98%）。';
+  }else if(colorMode==='area'){
+    var st2=[];for(var a=0;a<D.areas.length;a++){st2.push(hex(areaColor(a)));}
+    g.style.background='linear-gradient(90deg,'+st2.join(',')+')';
+    txt.innerHTML='<b>'+D.areas.length+' 个领域</b>，按文件数从多到少：'+
+      D.stats.area_files.slice(0,4).map(function(x){return x[0];}).join('、')+' …';
+  }else if(colorMode==='depth'){
+    g.style.background='linear-gradient(90deg,#ffdb85,#9e9e80,#48628a,#29334d)';
+    txt.innerHTML='越亮＝<b>离地面越近</b>。全库最深 175 层，塔尖是模形式。';
+  }else if(colorMode==='decls'){
+    g.style.background='linear-gradient(90deg,#29334d,#48628a,#9e9e80,#ffdb85)';
+    txt.innerHTML='越亮＝<b>这一个文件里的定理越多</b>。';
+  }else{
+    var st3=[];for(var t2=0;t2<=20;t2++){var c2=rampColor(t2/20);
+      st3.push('rgb('+(c2.r*255|0)+','+(c2.g*255|0)+','+(c2.b*255|0)+')');}
+    g.style.background='linear-gradient(90deg,'+st3.join(',')+')';
+    txt.innerHTML='<b>2021 → 2026</b>：整个库只有这五年多的历史（22 个季度快照，'+
+      '另有 41 个文件比最后一个快照还新）。暗＝最先搬进来的。';
+  }
+}
+
+var qEl=document.getElementById('q'), hitsEl=document.getElementById('hits');
+qEl.addEventListener('input',function(){
+  var s=qEl.value.trim().toLowerCase();
+  hitsEl.innerHTML='';
+  if(s.length<2) return;
+  var out=[];
+  for(i=0;i<N&&out.length<40;i++){
+    if(D.modules[i].toLowerCase().indexOf(s)>=0) out.push(i);
+  }
+  out.slice(0,14).forEach(function(id){
+    var d=document.createElement('div');
+    d.className='hit'; d.textContent=D.modules[id];
+    d.onclick=function(){ select(id); flyTo(id); hitsEl.innerHTML=''; qEl.value=''; };
+    hitsEl.appendChild(d);
+  });
+});
+
+document.getElementById('go').onclick=function(){
+  var o=document.getElementById('intro');
+  o.style.opacity=0; setTimeout(function(){o.style.display='none';},500);
+};
+// 截图/联调用：?nointro 直接进入；?space=ball&color=area 可预设
+if(/nointro/.test(location.search)){
+  document.getElementById('intro').style.display='none';
+}
+
+addEventListener('resize',function(){
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  matF.uniforms.uPix.value=renderer.getPixelRatio();
+});
+
+/* ============ 主循环 ============ */
+anc=new Set(); desc=new Set();
+
+// URL 参数：?color=area&sel=Mathlib.X&labels=1&nocloud=1&noedges=1
+var mq=location.search;
+var mm;
+if((mm=/[?&]color=(\w+)/.exec(mq))&&['sky','area','depth','birth','decls'].indexOf(mm[1])>=0){
+  colorMode=mm[1];
+  Array.prototype.forEach.call(document.querySelectorAll('#colorRow .btn'),function(b){
+    b.classList.toggle('on',b.dataset.v===colorMode);});
+}
+if((mm=/[?&]space=(cone|ball)/.exec(mq))&&(mm[1]==='cone'||(D.ball&&D.ball!==D.cone))){
+  space=mm[1];
+  Array.prototype.forEach.call(document.querySelectorAll('#spaceRow .btn'),function(b){
+    b.classList.toggle('on',b.dataset.v===space);});
+}
+function setChk(key,on){
+  chkState[key]=on;
+  Array.prototype.forEach.call(document.querySelectorAll('.chk'),function(el){
+    if(el.dataset.k===key) el.classList.toggle('on',on);});
+}
+if(/[?&]labels=1/.test(mq)) setChk('labels',true);
+if(/[?&]nocloud=1/.test(mq)) setChk('cloud',false);
+if(/[?&]noedges=1/.test(mq)) setChk('edges',false);
+if(/[?&]free=1/.test(mq)){
+  setFree(true);
+  Array.prototype.forEach.call(document.querySelectorAll('#camRow .btn'),function(b){
+    b.classList.toggle('on',b.dataset.v==='free');});
+}
+if(/[?&]walk=1/.test(mq)) keys['KeyW']=true;   // 自测用：模拟一直按住 W
+/* ?walk=N 先同步走 N 帧；?dbg=1 让主循环每帧把相机与连线淡出状态写进隐藏的 #dbg，
+   两种都靠 --dump-dom 读回来做功能验证。 */
+var dbgOn=false, dbgEl=document.getElementById('dbg');
+if(/[?&]nofade=1/.test(mq)) noFade=true;   // 对照用：关掉连线淡出
+if((mm=/[?&]dbg=1/.exec(mq))) dbgOn=true;
+if((mm=/[?&]walk=(\d+)/.exec(mq))){ keys['KeyW']=true; dbgOn=true; for(var wi=0;wi<+mm[1];wi++) stepFree(); }
+function dbgReport(){
+  var cd=camera.position.distanceTo(controls.target);
+  var cut=Math.max(70.0,(camera.position.length()-115)*3.0), vis=0;
+  for(var ei=0;ei<M;ei++){
+    var m0=(POS[space][D.edges[ei*2]*3]  +POS[space][D.edges[ei*2+1]*3])*0.5;
+    var m1=(POS[space][D.edges[ei*2]*3+1]+POS[space][D.edges[ei*2+1]*3+1])*0.5;
+    var m2=(POS[space][D.edges[ei*2]*3+2]+POS[space][D.edges[ei*2+1]*3+2])*0.5;
+    if(Math.sqrt((m0-camera.position.x)*(m0-camera.position.x)+
+                 (m1-camera.position.y)*(m1-camera.position.y)+
+                 (m2-camera.position.z)*(m2-camera.position.z))<cut) vis++;
+  }
+  dbgEl.textContent='cam='+camera.position.toArray().map(function(v){return v.toFixed(1);}).join(',')+
+    ' camD='+cd.toFixed(1)+' cut='+cut.toFixed(0)+' shader='+(matESh?'on':'off')+
+    ' visibleEdges='+vis+'/'+M+' free='+freeMode+' sel='+sel;
+}
+
+refresh(); drawRamp();
+ptsDecl.visible=chkState.cloud; lines.visible=chkState.edges;
+labels.forEach(function(s){s.visible=chkState.labels;});
+
+if((mm=/[?&]sel=([^&]+)/.exec(mq))){
+  var want='';
+  try{ want=decodeURIComponent(mm[1]).toLowerCase(); }catch(e){ want=mm[1].toLowerCase(); }
+  var sid=-1;
+  // 先精确、再前缀、最后才退到「包含」（包含匹配可能命中任意一个，只作兜底）
+  for(i=0;i<N;i++){ if(D.modules[i].toLowerCase()===want){sid=i;break;} }
+  if(sid<0){ for(i=0;i<N;i++){ if(D.modules[i].toLowerCase().indexOf(want)===0){sid=i;break;} } }
+  if(sid<0){ for(i=0;i<N;i++){ if(D.modules[i].toLowerCase().indexOf(want)>=0){sid=i;break;} } }
+  if(sid>=0){ select(sid); flyTo(sid,/[?&]micro=1/.test(mq)); for(var q=0;q<60;q++) stepFly(); }
+}
+
+(function loop(){
+  requestAnimationFrame(loop);
+  stepFly(); stepFree(); controls.update(); updateLabelScale();
+  // 点的大小随距离自适应：飞近看微距时，0.78 世界单位的点会变成几十像素的大方块
+  var camD=camera.position.distanceTo(controls.target);
+  matD.size=Math.max(0.20,Math.min(0.9,camD*0.011));
+  var camR=camera.position.length();          // 场景以原点为中心，半径约 175
+  matD.opacity=0.055*(camR<150?Math.max(0.5,camR/150):1);
+  if(matESh){
+    matESh.uniforms.uCam.value.copy(camera.position);
+    matESh.uniforms.uCut.value=noFade?1e6:Math.max(70.0,(camR-115)*3.0);
+  }
+  if(dbgOn) dbgReport();
+  renderer.render(scene,camera);
+})();
+})();
+</script>
+</body>
+</html>
