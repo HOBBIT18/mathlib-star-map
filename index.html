@@ -119,6 +119,36 @@
 
   #load{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
         font-size:11.5px;letter-spacing:.24em;color:var(--dim)}
+
+  /* ---------- 「怎么读」开关（只在窄屏出现）---------- */
+  #gbtn{display:none;position:fixed;left:10px;bottom:10px;z-index:8;padding:8px 14px;
+        font-size:11px;letter-spacing:.08em;color:var(--dim);background:rgba(9,11,16,.88);
+        border:1px solid var(--line);border-radius:2px;cursor:pointer;font-family:inherit}
+  #gbtn.on{color:var(--gold);border-color:var(--gold-dim)}
+
+  /* ---------- 窄屏 / 手机 ---------- */
+  @media (max-width: 900px){
+    #head{left:14px;top:12px}
+    #head h1{font-size:15px;letter-spacing:.16em}
+    #head .sub{font-size:9.5px;letter-spacing:.03em;margin-top:6px}
+    #head .rule{display:none}
+    #ctl{right:10px;top:10px;width:min(226px,55vw);padding:11px 12px;
+         max-height:calc(100vh - 20px);overflow:auto}
+    #ctl .grp{margin-bottom:9px}
+    #ctl .lbl{font-size:9.5px;letter-spacing:.06em}
+    #ctl .btn{font-size:10px;padding:4px 7px}
+    #ctl .chk{font-size:10px}
+    #legend{display:none}
+    #legend.open{display:block;left:10px;right:10px;top:104px;bottom:10px;
+                 width:auto;max-height:none;overflow:auto}
+    #legend .ex{font-size:10px;line-height:1.7}
+    #gbtn{display:block;left:14px;top:62px;bottom:auto}
+    #info{left:10px;right:10px;bottom:10px;width:auto;padding:13px 14px;
+          max-height:54vh;overflow:auto}
+    #tip{max-width:min(300px,78vw)}
+    #intro .box{width:min(600px,92vw);padding:26px 22px}
+    #intro h2{font-size:18px} #intro p{font-size:11.5px;line-height:1.85}
+  }
 </style>
 </head>
 <body>
@@ -168,6 +198,8 @@
     <div id="hits"></div>
   </div>
 </div>
+
+<button id="gbtn" type="button">怎么读</button>
 
 <div id="legend" class="panel">
   <div class="lbl">怎么读</div>
@@ -274,7 +306,10 @@ var BLACK=new THREE.Color(0,0,0);   // 加法混合下即「不画」
 
 /* ============ 场景 ============ */
 var canvas=document.getElementById('stage');
-var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+/* ?pdb=1 只在无头截图自测时用：默认的 WebGL 后备缓冲在截图那一刻可能已被清空，
+   打开 preserveDrawingBuffer 才能稳定截到画面。正常浏览不要开，会略慢。 */
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,
+  preserveDrawingBuffer:/[?&]pdb=1/.test(location.search)});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
@@ -567,9 +602,24 @@ function closure(start,adj){
   seen.delete(start);
   return seen;
 }
+function closeGuide(){
+  lg.classList.remove('open'); gbtn.classList.remove('on'); gbtn.textContent='怎么读';
+  var c=document.getElementById('ctl'); if(c) c.style.visibility='';
+}
+var gbtn=document.getElementById('gbtn'), lg=document.getElementById('legend');
+gbtn.addEventListener('click',function(){
+  var on=lg.classList.toggle('open');
+  gbtn.classList.toggle('on',on);
+  gbtn.textContent = on ? '收起说明' : '怎么读';
+  /* 窄屏上「说明」是整屏阅读面板，和底部详情、右上控制台互斥，开一个收另外的。
+     宽屏上「怎么读」一直显示在左下，按钮本身是隐藏的，这段不会生效。 */
+  if(!window.matchMedia('(max-width: 900px)').matches) return;
+  if(on) document.getElementById('info').classList.remove('show');
+  document.getElementById('ctl').style.visibility = on ? 'hidden' : '';
+});
 function select(idx){
   sel=idx;
-  if(idx<0){ anc=new Set(); desc=new Set();
+  if(idx<0){ anc=new Set(); desc=new Set(); closeGuide();
     document.getElementById('info').classList.remove('show'); refresh(); return; }
   anc=closure(idx,fwd);   // 它 import 的 → 它脚下（地基）
   desc=closure(idx,rev);  // import 它的 → 它头顶（建在它上面的）
@@ -973,6 +1023,7 @@ if(/[?&]walk=1/.test(mq)) keys['KeyW']=true;   // 自测用：模拟一直按住
 var dbgOn=false, dbgEl=document.getElementById('dbg');
 if(/[?&]nofade=1/.test(mq)) noFade=true;   // 对照用：关掉连线淡出
 if((mm=/[?&]dbg=1/.exec(mq))) dbgOn=true;
+if(/[?&]guide=1/.test(mq)) gbtn.click();   // 自测用：直接展开「怎么读」
 if((mm=/[?&]walk=(\d+)/.exec(mq))){ keys['KeyW']=true; dbgOn=true; for(var wi=0;wi<+mm[1];wi++) stepFree(); }
 function dbgReport(){
   var cd=camera.position.distanceTo(controls.target);
