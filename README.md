@@ -1,218 +1,217 @@
-# Mathlib 依赖星图（3D 交互演示）
+# Mathlib Dependency Star Map
 
-**打开方式：双击 `index.html`。** 不需要服务器、不需要联网——three.js 与数据都在本地。
+**Live demo → https://hobbit18.github.io/mathlib-star-map/**
+
+An interactive 3D map of [Mathlib](https://github.com/leanprover-community/mathlib4) — the mathematics library written for the Lean proof assistant. Every point is a file, every line is an `import`, and clicking a file splits the entire library into what it stands on and what stands on it.
+
+![The star map](shot-ball.png)
+
+No server, no build step, no network. `index.html` is self-contained — three.js and the data ship with it. Open it directly, or use the live link above.
 
 ---
 
-## 这是什么
+## The data
 
-Mathlib 是数学家写给机器看的数学库：**8,631 个文件、259,059 条定义与定理**，
-文件之间用 `import` 互相引用（A 要用 B，就把 B 拉进来）。**23,010 条不同的 import 关系**，
-构成一张有严格方向的网。
+Mathlib as of commit `e91b1280` (2026-10-15):
 
-这个演示把那张网摊成 3D：
-
-| 视觉元素 | 数据含义 |
+| | |
 |---|---|
-| 一个大点 | 一个 `.lean` 文件 |
-| 围绕它的点云 | 那个文件里的声明（一条定理／定义 = 一个点），共 259,059 个 |
-| 一条线 | 一条 import：从「要用的文件」连向「被用的文件」 |
-| 竖轴（地层模式） | 依赖层数：0 = 不依赖任何 Mathlib 文件，175 = 全库最深 |
-| 点的大小 | 两者混合：文件自己的分量（声明数）+ 它支撑的分量（被多少文件依赖） |
-| 点的亮度／颜色 | 可切换（见下） |
+| `.lean` files | **8,631** |
+| declarations (definitions + theorems) | **259,059** |
+| distinct `import` relationships | **23,010** |
+| dependency layers (longest import chain) | **176** (0–175) |
+| subject areas | **33** |
 
-## 三种「看什么」
+## What you are looking at
 
-**上色**（右上）——默认是**被依赖数**，也就是「头顶压着多少个文件」：
-
-- **越亮越金** = 越多文件建在它上面（地基）
-- **深蓝** = 几乎没人用它（叶子）
-
-其余四种切法：**领域**（33 个领域各一色）、**依赖层**（离地面多近）、
-**出生季度**（只有 2021–2026，22 个季度）、**声明量**（这个文件里有多少条数学）。
-
-**空间**——两种：
-
-- **地层**：竖轴 = 依赖层数。有含义。可以直接看见「谁垫在谁下面」。
-- **球状**：3D 力导向布局。无机含义，但能看出哪些文件抱团。
-
-**点一下任意点**——这是这个演示真正想说的事：
-
-- **青绿色** = 它**脚下**的东西：它直接／间接 import 的每一个文件（它的地基）
-- **橙色** = 它**头顶**的东西：直接／间接 import 它的每一个文件（站在它上面的）
-- 右侧面板给出准确数字
-
-举例：点最底下那颗金色的球（`Mathlib.Tactic.Linter.DirectoryDependency`，460 行、
-20 条声明），它会告诉你 **8,629 个文件站在它上面**——全库 99.98%。
-Mathlib 的地基不是数学，是 Lean 的 linter 和元编程。
-
-## 操作
-
-| 操作 | 效果 |
+| Visual | Meaning |
 |---|---|
-| 左键拖 | 旋转 |
-| 滚轮 | 缩放 |
-| 右键拖 | 平移 |
-| 右上「相机」 | **轨道**（默认）：相机被拴在选中点上，只能绕着它转。**自由漫游**：相机和视点当一个整体走，想去哪去哪 — `W A S D` 前后左右、`E / Q` 升降、按住 `Shift` 加速、拖鼠标转视角、滚轮远近。速度随远近自适应（微距里挪得细，全景里飞得快），在搜索框里打字时不会误触发 |
-| 悬停 | 浮出文件名、领域、声明数 |
-| 点击 | 选中：脚下／头顶分开点亮 |
-| `Esc` | 取消选择 |
-| 右上「导览」三个按钮 | 一键跳到**地基之王**（被依赖最多）／**最高的塔尖**（依赖层最深）／**最大的文件**（声明最多） |
-| 右上「只留头顶压着 ≥ N 个文件的」 | **真的隐藏**低于阈值的点与其两端连线（拉高就只剩骨架）。选区不受阈值影响 |
-| 右上「骨干的名字」 | 显示约 50 个标签：被依赖最多的 20 个 + **每个领域里声明最多的那个**（给每根竖柱子起名）。标签恒定屏幕大小；短名撞车的（如两个 `Basic`）自动退回三级名字 |
-| 右上搜索框 | 输 `Mathlib.NumberTheory` 之类，点结果直接飞过去 |
+| A large dot | One `.lean` file |
+| The cloud around it | The declarations inside that file — 259,059 points in total |
+| A line | One `import`: from the file that *uses* to the file that is *used* |
+| Vertical axis (Strata mode) | Dependency depth: 0 = imports nothing from Mathlib, 175 = deepest in the library |
+| Dot size | Hybrid of the file's own weight (declaration count) and the weight it supports (how many files depend on it) |
 
-## URL 参数（截图／做演示用）
+## Three ways to look
+
+**Colour** (top right) — default is *dependents*, i.e. how many files sit on top of this one:
+
+- **bright gold** = many files are built on it (bedrock)
+- **deep blue** = almost nothing uses it (leaf)
+
+Four other colourings: **area** (33 subject areas), **depth** (how close to the ground), **birth quarter** (2021–2026, 22 quarters), **declarations** (how much mathematics is in the file).
+
+**Space** — two layouts:
+
+- **Strata**: the vertical axis is dependency depth. This one carries meaning; you can see what is stacked on what.
+- **Ball**: a 3D force-directed layout. Geometrically meaningless, but it shows which files cluster together.
+
+**Click any point** — this is the point of the whole thing:
+
+- **Teal** = what lies *beneath* it: everything it imports, directly or transitively (its foundation)
+- **Orange** = what sits *above* it: everything that imports it, directly or transitively
+- The right-hand panel gives exact counts
+
+For example, click the bright gold sphere at the very bottom — `Mathlib.Tactic.Linter.DirectoryDependency`, 460 lines, 20 declarations — and it will tell you that **8,629 files stand on it**: 99.98% of the library.
+
+Mathlib's foundation is not mathematics. It is Lean's linters and metaprogramming.
+
+## Controls
+
+| Input | Effect |
+|---|---|
+| Left-drag | Rotate |
+| Wheel | Zoom |
+| Right-drag | Pan |
+| Camera: **Orbit** (default) | The camera is tethered to the selected point and can only circle it |
+| Camera: **Free roam** | Camera and target move together — `W A S D` to move, `E` / `Q` for up/down, hold `Shift` to accelerate, drag to look around, wheel to dolly. Speed adapts to distance (fine control up close, fast across the whole map) and keystrokes are ignored while typing in the search box |
+| Hover | Tooltip: file name, area, declaration count |
+| Click | Select: beneath and above light up separately |
+| `Esc` | Clear selection |
+| **Guide** buttons | Jump to the *king of bedrock* (most depended-upon), the *tallest spire* (deepest depth), or the *largest file* (most declarations) |
+| **Hide nodes with < N dependents** | Genuinely hides points below the threshold, along with their edges — raise it and only the skeleton remains. The current selection is exempt |
+| **Backbone labels** | About 50 labels: the 20 most depended-upon files plus the largest file in each area. Labels keep a constant screen size; short names that collide (e.g. two `Basic`) fall back to a three-part name |
+| Search box | Type `Mathlib.NumberTheory` and jump straight there |
+
+## URL parameters
+
+Useful for screenshots and scripted demos:
 
 ```
-index.html?nointro                          跳过开场
-index.html?labels=1                         显示骨干名字
-index.html?color=area                       预设上色：area|sky|depth|birth|decls
-index.html?space=ball                       预设空间：cone|ball
-index.html?thr=1500                         预设阈值（只留头顶压着 ≥1500 个文件的）
+index.html?nointro                          skip the intro overlay
+index.html?labels=1                         show backbone labels
+index.html?color=area                       preset colouring: area|sky|depth|birth|decls
+index.html?space=ball                       preset layout: cone|ball
+index.html?thr=1500                         preset threshold
 index.html?sel=Mathlib.CategoryTheory.Abelian.Projective.Dimension
-                                            预设选中并飞过去（精确匹配优先，其次前缀，最后包含）
-index.html?nocloud=1&noedges=1              关掉点云／连线
-index.html?free=1                           预设「自由漫游」相机
-index.html?sel=X&micro=1                    选中 X 并直接拉到微距
-index.html?guide=1                          展开窄屏的「怎么读」面板（宽屏本来一直显示）
+                                            preselect and fly to (exact match, then prefix, then substring)
+index.html?nocloud=1&noedges=1              hide the point cloud / the edges
+index.html?free=1                           start in free-roam camera mode
+index.html?sel=X&micro=1                    select X and zoom straight to micro range
+index.html?guide=1                          open the narrow-screen "how to read" panel
 ```
 
-无头截图必须加的一个：
+### For headless screenshots
 
 ```
-index.html?pdb=1                打开 preserveDrawingBuffer
+index.html?pdb=1                enable preserveDrawingBuffer
 ```
 
-不加它的话，Edge 无头截图**经常截到空白的 WebGL 画布**（后备缓冲在截图那一刻已被清空），
-画面只剩 UI 面板 —— 实测同一份文件／同一条命令，不加是 193,783 字节的空白图，加了是 1,520,212 字节的完整画面。
-正常浏览**不要**开，会略慢；那一行开销只在 `?pdb=1` 时才有。
+Without it, headless Edge **frequently captures a blank WebGL canvas**, because the back buffer has already been cleared by the time the screenshot is taken — you get the UI panels over an empty background. Measured on the same file with the same command: 193,783 bytes blank versus 1,520,212 bytes with it. Do not enable it for normal browsing; the cost is only paid when `?pdb=1` is present.
 
-自测／回归用的三个（`--dump-dom` 读隐藏的 `#dbg` 就能拿回状态，不需要人看）：
+### For self-testing and regression
+
+These write state into a hidden `#dbg` element that `--dump-dom` can read back, so no human has to look at anything:
 
 ```
-index.html?dbg=1                主循环每帧把相机位置／cut 半径／可见连线数／shader 是否注入写进 #dbg
-index.html?free=1&walk=2000     先同步走 2000 帧（模拟一直按住 W），用来验证位移
-index.html?nofade=1             对照开关：关掉连线随距离淡出（用来 A/B 证明它真的在起作用）
+index.html?dbg=1                each frame writes camera position, cut radius, visible edge count and shader-injection status into #dbg
+index.html?free=1&walk=2000     simulate holding W for 2000 frames, to verify movement
+index.html?nofade=1             control switch: disable distance fade on edges (for A/B proof that it works)
 ```
 
-实测（`--dump-dom` 读回来的原始输出）：
+Measured (raw `--dump-dom` readback):
 
-| 场景 | 相机到原点 | cut 半径 | 可见连线 |
+| Scene | Camera to origin | Cut radius | Visible edges |
 |---|---|---|---|
-| 全景（默认） | 293.2 | 535 | 23010 / 23010（一条不少） |
-| 选中「地基之王」飞过去 | 153 | 115 | 2029 / 23010 |
-| 选中塔尖文件进微距 | 118 | 70 | 593 / 23010 |
+| Overview (default) | 293.2 | 535 | 23010 / 23010 (all of them) |
+| Flying to the king of bedrock | 153 | 115 | 2029 / 23010 |
+| Micro range on the tallest spire | 118 | 70 | 593 / 23010 |
 
-A/B 像素证据：微距下「淡出开」与「`nofade=1`」渲染出的 PNG **不同**（543,799 vs 557,220 字节）⇒ 淡出确实进了画面；
-把相机放在同一处较远位置时两者**逐字节相同**（都 `sha 8FCDC280…`）⇒ 这个效果只在走近后才启动，远景没被动过。
+A/B pixel evidence: at micro range, fade-on and `nofade=1` render **different** PNGs (543,799 vs 557,220 bytes), proving the fade reaches the framebuffer. Parked at the same distant position they are **byte-identical** (`sha 8FCDC280…`), proving the effect only engages close up and nothing in the overview was disturbed.
 
-`#dbg` 里的 `visibleEdges` 是「中点落在 cut 半径之内」的**上限**，不扣除被阈值滑块压黑的那些，所以 `thr=8000` 时它仍然报 23010 —— 这个数只用来验证淡出半径，不是实际画出来的条数。
+`visibleEdges` in `#dbg` is an upper bound — edges whose midpoint falls inside the cut radius, not excluding those dimmed by the threshold slider. At `thr=8000` it still reports 23010. It is a fade-radius check, not a count of what is actually drawn.
 
-## 窄屏 / 手机（≤900px 宽）
+## Narrow screens (≤900px wide)
 
-宽屏时左下角那块「怎么读」一直显示；窄屏上它会跟其它面板抢地方，所以改成**点开才出现**：
-左上角多一个「怎么读」按钮，点开是一整屏的阅读面板，右上控制台和底部详情都会让位（关掉就回来）。
+On a wide screen the "how to read this" panel sits permanently in the bottom-left. On a narrow screen it competes with everything else, so it becomes **click-to-open**: a "怎么读 / Guide" button appears at the top left and opens a full-screen reading panel, while the control console and detail panel step aside. Close it and they return.
 
-用真实 DOM 量过三个宽度（读 `getBoundingClientRect()` 判断重叠）：
+Measured against the real DOM at three widths (reading `getBoundingClientRect()` to detect overlap):
 
-| 视口 | 「怎么读」初始 | 点开后 | 与其它面板重叠 |
+| Viewport | "Guide" initially | After opening | Overlaps |
 |---|---|---|---|
-| 504×837（手机） | 隐藏 | 铺满 `10,104–494,827` | 无（控制台 `visibility:hidden` 让位） |
-| 790×1085（平板） | 隐藏 | 铺满 `10,104–780,1075` | 无 |
-| 1570×905（桌面） | **一直显示** `34,542–364,877` | 按钮不存在（`display:none`） | 无 |
+| 504×837 (phone) | hidden | fills `10,104–494,827` | none (console is `visibility:hidden`) |
+| 790×1085 (tablet) | hidden | fills `10,104–780,1075` | none |
+| 1570×905 (desktop) | **always visible** `34,542–364,877` | button does not exist (`display:none`) | none |
 
-另外做了桌面回归：改完 CSS 后，1600×1000 的渲染结果与改动前**逐字节相同**
-（`sha 07089016CF72334D…`）⇒ 这一整套改动对宽屏零影响。
+Desktop regression: after the CSS change, a 1600×1000 render is **byte-identical** to the render before it (`sha 07089016CF72334D…`), so the whole narrow-screen change is invisible on wide screens.
 
-## 走近了才看得见：四处只在近处生效的调整
+## Four fixes that only matter when you fly in
 
-全景那张图是给「一眼看全貌」用的，但用户会想飞进去看。飞近之后原来没问题的地方全暴露了，所以做了四处调整（**都不影响全景**）：
+The overview exists to be taken in at a glance, but of course you want to fly into it. Everything that was fine from a distance fell apart up close, so four things were adjusted — **none of which affect the overview**:
 
-| 问题 | 现象 | 修法 |
+| Problem | Symptom | Fix |
 |---|---|---|
-| 点云是方的 | 拉近后每颗声明点渲染成一个几十像素的灰方块（贴图缺省是方块），叠成一片马赛克 | 给 `PointsMaterial` 加一张 64px 径向渐变圆贴图 |
-| 点太大 | `sizeAttenuation` 下 0.78 世界单位的点，12 单位处占屏 85px | 每帧 `size = clamp(camD * 0.011, 0.20, 0.90)` |
-| 远处的标签 | 标签恒定屏幕大小，微距下 200 单位外的标签也是一样大，糊在屏幕上成一排灰块 | 超过 280 单位不画，并在 200→280 之间淡出 |
-| 长连线糊成白雾 | 从场景另一头横穿画面的连线，在近处看就是一片白 | 每条线段存中点 `aMid`，`onBeforeCompile` 往 `basic` 顶点着色器注入 `vColor *= 1.0 - smoothstep(...)`，超过 cut 半径整条淡出；`cut = max(70, (相机到原点 - 115) * 3.0)` |
+| Point cloud rendered as squares | Up close every declaration draws as a grey block tens of pixels wide, tiling into a mosaic | A 64px radial-gradient canvas texture on the `PointsMaterial` |
+| Points far too large | With `sizeAttenuation`, a 0.78 world-unit point fills 85px of screen at distance 12 | Per frame: `size = clamp(camD * 0.011, 0.20, 0.90)` |
+| Distant labels | Labels are constant screen size, so a label 200 units away is just as large and smears into a row of grey blocks | Do not draw beyond 280 units; fade out between 200 and 280 |
+| Long edges become white haze | Edges crossing the whole scene are a wash of white when you are close to them | Each segment stores its midpoint `aMid`; `onBeforeCompile` injects `vColor *= 1.0 - smoothstep(...)` into the `basic` vertex shader, fading the whole segment past the cut radius; `cut = max(70, (camera-to-origin - 115) * 3.0)` |
 
-## 文件
+## Files
 
-| 文件 | 内容 |
+| File | Contents |
 |---|---|
-| `index.html` | 演示本体（单文件，1026 行 / 42.8 KB） |
-| `vendor/three.min.js` | three.js r128（MIT，本地化以免断网打不开） |
-| `vendor/OrbitControls.js` | 官方轨道控制器（classic script 版，`file://` 可用） |
-| `data.js` | 1.14 MB（1,142,997 字节），`window.MLDATA`：8631 个文件的坐标／度／层数／领域／出生季度 + 23010 条边 |
-| `build_demo_data.py` | 从 `research\mathlib-map\` 的 TSV 生成 `data.js`（含边去重、环保护） |
-| `layout3d.py` | 3D 力导向布局（`pos3d_force.tsv`），输出「球状」坐标 |
-| `pos3d_force.tsv` | 3D 力导向坐标（8632 行 = 1 行表头 + 8631 个文件） |
+| `index.html` | The demo itself (single file, 1026 lines / 42.8 KB) |
+| `vendor/three.min.js` | three.js r128 (MIT), vendored so it works offline |
+| `vendor/OrbitControls.js` | Official orbit controls (classic script build, so `file://` works) |
+| `data.js` | 1.14 MB (1,142,997 bytes) — `window.MLDATA`: coordinates, degree, depth, area and birth quarter for all 8,631 files, plus 23,010 edges |
+| `build_demo_data.py` | Builds `data.js` from the TSVs in `research/mathlib-map/` (deduplicates edges, cycle-safe) |
+| `layout3d.py` | 3D force-directed layout, producing `pos3d_force.tsv` for Ball mode |
+| `pos3d_force.tsv` | The 3D coordinates (8,632 lines = header + 8,631 files) |
 
-**数据来源**：`C:\Users\22771\mathlib4`（`git clone --depth 1`，2026-10-15，commit `e91b1280`）。
-行号与统计口径见 `research\mathlib-map\README.md`。
+**Source of the data**: a `git clone --depth 1` of `mathlib4` at commit `e91b1280`, 2026-10-15.
 
-## 几个诚实提醒
+## Honest caveats
 
-1. **259,059 个点是浏览器里确定性抖出来的**（`mulberry32` seed 20261017），
-   不是真实的声明坐标——Lean 不输出这种东西。点的**数量**是真的，
-   空间上的**位置**是「围绕它所属的文件」的示意。它的作用是让文件的体量看得见。
-2. 文件坐标来自 2D 依赖图布局，位置是**排出来好看的**，不是数据。
-   真正是数据的是：点的亮度、大小、竖轴高度、连线的两端。
-3. 「头顶 / 脚下」按**文件级 import 的传递闭包**算，**不是证明内部的引用**
-   （Lemma A 用没用 Lemma B，要看证明正文，这里没算）。所以数字是
-   「它的地基有多宽」，不是「它的证明用了多少前人的定理」。
-4. 「出生年份」= 该文件**首次出现在 mathlib4 的季度**（GitHub API 取季度快照比对），
-   不是数学本身诞生的年代。整个库只有 2021-07 至 2026-10 这 22 个季度；
-   另有 41 个文件比最后一个快照还新，归到「之后」那一档。
-5. 边数：`edges.tsv` 有 23,084 行，其中 74 条是完全重复的 `(src,dst)`
-   （同一对文件被写了两个 `import`），**自环 = 0**。`build_demo_data.py` 已去重，
-   所以演示里的 23,010 条 = 互不相同的 import 关系。不去重会让「头顶：直接依赖它的文件」
-   比实际多算。
-6. 标签只显示约 50 个文件（见上表），不是全部 8,631 个——全标上去会糊成一片。
+1. **The 259,059 points are deterministically jittered in the browser** (`mulberry32`, seed 20261017); they are not real declaration coordinates — Lean does not emit such a thing. The **count** is real; the **position** is a stand-in for "belongs to this file". Their job is to make a file's weight visible.
+2. File coordinates come from a 2D layout of the dependency graph. Their **positions are arranged to look good, not measured**. What is actually data: dot brightness, dot size, vertical height, and both endpoints of every line.
+3. "Above / beneath" is the **transitive closure of file-level `import`**, not references inside proofs. Whether Lemma A uses Lemma B requires reading the proof body, which is not computed here. So the numbers describe *how wide a file's foundation is*, not *how many prior theorems its proof used*.
+4. "Birth quarter" = the quarter in which the file **first appeared in mathlib4** (computed by diffing quarterly snapshots from the GitHub API), not when the mathematics was discovered. The library only spans 2021-07 to 2026-10. A further 41 files are newer than the last snapshot and fall into an "after" bucket.
+5. Edge count: `edges.tsv` has 23,084 rows, of which 74 are exact duplicate `(src,dst)` pairs (the same pair written as two `import` lines); **self-loops are 0**. `build_demo_data.py` deduplicates, so the 23,010 in the demo are distinct import relationships. Without deduplication, "dependents: files that import it directly" over-counts.
+6. Only about 50 files are labelled, not all 8,631 — labelling everything turns the screen to mush.
 
-## 一次独立复核（2026-10-17）
+## Independent review (2026-10-17)
 
-这个演示做完后交给一个**独立的子代理**复核（它只读、不改，自己在 `%TEMP%` 里重算）。
-它独立重算了全部 8631 个节点的传递闭包，得出的结论是：
+After the demo was finished it was handed to an **independent subagent** to verify. It was read-only, made no changes, and recomputed everything itself in `%TEMP%`. It independently recomputed the transitive closure of all 8,631 nodes and concluded:
 
-- **核心语义正确**：`脚下` = 它 import 的（青绿）／`头顶` = import 它的（橙），
-  与 `ground` / `sky` 逐节点比对 **0 处不一致**；`depth` 与「到汇点的最长路」**0 处不一致**。
-- **259,059 这个数是真的**：`sum(decls) === decls_total`，且每个声明恰好生成一个确定性点。
-- 它同时找出 11 处问题，**已按它给的优先级全部修掉**：
+- **Core semantics are correct**: "beneath" = what it imports (teal), "above" = what imports it (orange), compared node by node against `ground` / `sky` with **0 mismatches**; `depth` versus "longest path to a sink" also **0 mismatches**.
+- **259,059 is a real number**: `sum(decls) === decls_total`, and each declaration produces exactly one deterministic point.
+- It also found 11 problems, **all of which have been fixed**, in the order it prioritised them:
 
-| # | 问题 | 修法 |
+| # | Problem | Fix |
 |---|---|---|
-| 1 | **声明点云不跟着换空间**：`dpos` 只在初始化时按 cone 坐标算过，切到球状后 259,059 个点仍留在锥体里（中位偏移 88.5 单位），选区高亮落到空处 | 改成存「每颗点相对自己文件的抖动偏移」`doff`，`refresh()` 里 `dpos = P + doff` 并置 `position.needsUpdate` |
-| 2 | **信息条三段宽度加起来不是 100%**：`tot` 里 `ground` 被算了两次（`anc.size === ground`），绿色条只占一半，橙色看不见 | `tot = anc.size + 1 + desc.size` |
-| 3 | 33 个领域只有 22 个色相，后 11 个与前 11 个撞色 | 色相表改成黄金角铺开的 34 个 |
-| 4 | 图例写「8592 个文件站在那几个 linter 上」——8592 其实是 `Mathlib.Lean.Environment`，不是 linter | 改成 8629 / `Linter.DirectoryDependency` |
-| 5 | README 说 `edges.tsv` 有「少数自环」——自环其实是 0；而 `build_demo_data.py` 的 DFS 没有环保护，真出现环会**死循环** | 边去重（23,084→23,010），DFS 加 `onstack` 环保护；README 改口径 |
-| 6 | `?sel=` 文档写「前缀匹配」，实现是「包含匹配」，且 `decodeURIComponent` 遇到坏 `%` 会抛 | 精确 → 前缀 → 包含，三级回退；`try/catch` |
-| 7 | 阈值滑块标着「只留…」实际只**压暗**，边和点一个没少 | 改成真的隐藏（加法混合下置黑 + 尺寸归零 + 边置黑） |
-| 8 | 标签短名撞车（两个 `Basic`、两个 `Ring.Defs`） | 撞车的自动退回三级名字，仍撞再加序号 |
-| 9 | README 若干数字对不上（行数、MB、`pos3d_force.tsv` 行数、「五年」） | 逐条改成实测值 |
-| 10 | 自定义 ShaderMaterial 没有 `#include <encodings_fragment>`，与内建材质输出编码不一致，同色两处观感不同 | 补上该 include |
-| 11 | 死代码 `declStart` / `AREA_COL` / 未用的 `s`；`indeg` 因重复边而偏大 | 清掉；`indeg` 随边去重自然准确 |
+| 1 | **The declaration cloud did not follow the layout switch**: `dpos` was computed from cone coordinates at init only, so after switching to Ball, 259,059 points stayed inside the cone (median offset 88.5 units) and selection highlights landed on empty space | Store a per-point jitter offset `doff` relative to its own file, and set `dpos = P + doff` with `position.needsUpdate` in `refresh()` |
+| 2 | **The three segments of the info bar did not add up to 100%**: `tot` counted `ground` twice (`anc.size === ground`), so the green bar filled only half and orange was invisible | `tot = anc.size + 1 + desc.size` |
+| 3 | 33 areas but only 22 hues, so the last 11 collided with the first 11 | 34 hues spread by the golden angle |
+| 4 | The legend claimed "8592 files stand on those linters" — 8592 is actually `Mathlib.Lean.Environment`, not a linter | Corrected to 8629 / `Linter.DirectoryDependency` |
+| 5 | The README claimed `edges.tsv` had "a few self-loops" — there are none; and the DFS in `build_demo_data.py` had no cycle guard, so a real cycle would have **hung** | Deduplicate edges (23,084 → 23,010); add an `onstack` guard to the DFS; correct the README |
+| 6 | `?sel=` was documented as prefix matching but implemented as substring matching, and `decodeURIComponent` throws on a malformed `%` | Three-level fallback (exact → prefix → substring) inside `try/catch` |
+| 7 | The threshold slider said "keep only…" but only **dimmed**; no point or edge was actually removed | Genuinely hide (black under additive blending + zero size + black edges) |
+| 8 | Colliding short label names (two `Basic`, two `Ring.Defs`) | Colliding names fall back to a three-part name, then to a numeric suffix |
+| 9 | Several README numbers were wrong (line count, MB, `pos3d_force.tsv` rows, "five years") | Each replaced with a measured value |
+| 10 | The custom `ShaderMaterial` lacked `#include <encodings_fragment>`, so its output encoding disagreed with the built-in materials and the same colour looked different in two places | Added the include |
+| 11 | Dead code (`declStart`, `AREA_COL`, an unused `s`); `indeg` inflated by duplicate edges | Removed; `indeg` became accurate once edges were deduplicated |
 
-复核者还确认了几件**不是** bug 的事：`ShaderMaterial{vertexColors:true}` 在 r128 里能编译、
-所用 API 全部存在于 r128、没有残留的 `axisLabels` 引用、拾取与拖拽判定正确、
-全部 URL 参数在 `file://` 下可用、页面完全自包含。
+The reviewer also confirmed several things that are **not** bugs: `ShaderMaterial{vertexColors:true}` does compile in r128, every API used exists in r128, there are no leftover `axisLabels` references, picking and drag detection are correct, every URL parameter works under `file://`, and the page is fully self-contained.
 
-## 复现
+## Reproducing
 
 ```powershell
 $py = 'C:\Users\22771\AppData\Local\Programs\Python\Python312\python.exe'
 $here = 'C:\Users\22771\Documents\deepseek-harness\default-workspace\research\mathlib-3d'
 
-# 1. 重算 3D 力导向坐标（约 20 分钟，已跑过）
+# 1. Recompute the 3D force-directed layout (~20 minutes; already done)
 & $py "$here\layout3d.py"
 
-# 2. 重建 data.js
+# 2. Rebuild data.js
 & $py "$here\build_demo_data.py"
 
-# 3. 无头截图（验证没坏）
+# 3. Headless screenshot (sanity check)
 & 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' `
   --headless=new --disable-gpu --enable-unsafe-swiftshader --hide-scrollbars `
   --window-size=1700,1060 --virtual-time-budget=45000 `
   --screenshot="$here\shot.png" "file:///$($here -replace '\\','/')/index.html?nointro"
 ```
+
+## License
+
+The demo code is provided as-is. `vendor/three.js` is MIT (© three.js authors). The underlying mathematical content belongs to the [Mathlib project](https://github.com/leanprover-community/mathlib4) and its contributors.
